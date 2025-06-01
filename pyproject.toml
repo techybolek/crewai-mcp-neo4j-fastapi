@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "crewai-mcp-neo4j-fastapi"
+version = "0.1.0"
+description = ""
+authors = ["jalakoo <jalakoo@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11"
+fastapi-mcp = "^0.3.4"
+uvicorn = "^0.34.3"
+crewai = "^0.121.1"
+crewai-tools = {extras = ["mcp"], version = "^0.46.0"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

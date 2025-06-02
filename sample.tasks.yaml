@@ -1,0 +1,6 @@
+processing_task:
+  description: >
+    Process the following query about the Neo4j graph database: {query}
+  expected_output: >
+    A comprehensive answer to the query: {query}
+  agent: analyst_agent

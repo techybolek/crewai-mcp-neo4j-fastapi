@@ -8,7 +8,7 @@ Copy the sample.env file to .env and fill in the values.
 
 ## Running
 ```
-poetry run uvicorn main:app --reload
+poetry run uvicorn main:app --reload --port 4000
 ```
 
 Interactive docs will be accessible at:

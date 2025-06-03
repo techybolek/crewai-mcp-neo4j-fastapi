@@ -1107,29 +1107,6 @@ all = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>
 standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>=0.23.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
 
 [[package]]
-name = "fastapi-mcp"
-version = "0.3.4"
-description = "Automatic MCP server generator for FastAPI applications - converts FastAPI endpoints to MCP tools for LLM integration"
-optional = false
-python-versions = ">=3.10"
-files = [
-    {file = "fastapi_mcp-0.3.4-py3-none-any.whl", hash = "sha256:b2bcddd0514201c6434b970263f8f4e9e8e1f494ea93fdc0de251e19337e19cf"},
-    {file = "fastapi_mcp-0.3.4.tar.gz", hash = "sha256:2a83dde5b249cfa6276f0ee90958387bb8c9c430f1a6213f559ead757dfe18b2"},
-]
-
-[package.dependencies]
-fastapi = ">=0.100.0"
-httpx = ">=0.24.0"
-mcp = ">=1.8.1"
-pydantic = ">=2.0.0"
-pydantic-settings = ">=2.5.2"
-requests = ">=2.25.0"
-rich = ">=13.0.0"
-tomli = ">=2.2.1"
-typer = ">=0.9.0"
-uvicorn = ">=0.20.0"
-
-[[package]]
 name = "fastavro"
 version = "1.11.1"
 description = "Fast read/write of AVRO files"
@@ -5994,4 +5971,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.11.11"
-content-hash = "6d850256203252c360537fd8a8861eb66aea943d258557ec6b130e5382dc6221"
+content-hash = "59c45066e5aabb8f184da6663419d841924f6f6cb9e1467f2f8572f3dc35df23"

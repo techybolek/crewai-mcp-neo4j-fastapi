@@ -1,4 +1,17 @@
-from crewai import Agent, Task, Crew, Process
+# OPTIONAL -------------------------------
+# Using ollama - by default OpenAI is used
+# Remove / comment this block if using OpenAI
+# from crewai import LLM
+# from langchain_community.chat_models import ChatOpenAI
+
+# llm = ChatOpenAI(
+#     model="ollama/qwen3:latest",
+#     base_url="http://localhost:11434",
+#     streaming=True
+# )
+# ----------------------------------------
+
+from crewai import Agent, Task, Crew
 from crewai_tools import MCPServerAdapter
 from mcp import StdioServerParameters
 import os
@@ -11,7 +24,6 @@ server_params=[
         env=os.environ,
     )
 ]
-
 
 # Optionally logging callbacks from Agents & Tasks
 def log_step_callback(output):
@@ -28,7 +40,9 @@ def log_task_callback(output):
 
 # Create and run Crew
 def run_crew_query(query: str):
+
     with MCPServerAdapter(server_params) as tools:
+    
         print(f"Available tools from Stdio MCP server: {[tool.name for tool in tools]}")
 
         analyst_agent = Agent(
@@ -36,25 +50,20 @@ def run_crew_query(query: str):
             goal="Process data using a local Stdio-based tool.",
             backstory="An AI that leverages local scripts via MCP for specialized tasks.",
             tools=tools,
-            reasoning=False,
-            verbose=False,
-            step_callback=log_step_callback,
+            reasoning=False, # Optional
+            verbose=False, # Optional
+            step_callback=log_step_callback, # Optional
+            # llm=llm, # Optional - Remove if using OpenAI
         )
         
         # Passing query directly into task
         processing_task = Task(
-            description=f"""Process the following query about the Neo4j graph database: {query}
+            description="""Process the following query about the Neo4j graph database: {query}
             
             Provide a detailed and comprehensive answer to the query.""",
-            expected_output=f"A comprehensive answer to the query: {query}",
+            expected_output="A comprehensive answer to the query: {query}",
             agent=analyst_agent,
-            markdown=False,
-            context=[{
-                "query": query,
-                "description": f"Process and answer the following query: {query}",
-                "expected_output": f"A detailed and accurate answer to: {query}"
-            }],
-            callback=log_task_callback,
+            callback=log_task_callback, # Optional
         )
         
         data_crew = Crew(
@@ -63,9 +72,14 @@ def run_crew_query(query: str):
             verbose=False
         )
     
-        result = data_crew.kickoff()
+        result = data_crew.kickoff(inputs={"query": query})
         return {"result": result}
 
 # For running as a script
+# ie poetry run python cai.py
 if __name__ == "__main__":
-    run_crew_query("What is the total value of all orders?")
+    result = run_crew_query("Which staff member manages the delivery service delivering the most orders?")
+    print(f"""
+        Query completed!
+        result: {result}
+    """)

@@ -9,6 +9,8 @@ This is a simple FastAPI server that uses CrewAI and Neo4j MCP to process querie
 
 
 ## Setup
+0. Make sure you have the mcp server installed in the matching python enviro!
+  uvx mcp-neo4j-cypher
 1. Copy the sample.env file to .env and fill in the values.
 2. Run `poetry install`
 

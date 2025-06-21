@@ -4,9 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["jalakoo <jalakoo@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "3.11.11"
+python = "3.11.13"
 uvicorn = "^0.34.3"
 crewai = "^0.121.1"
 crewai-tools = {extras = ["mcp"], version = "^0.46.0"}

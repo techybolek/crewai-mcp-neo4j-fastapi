@@ -11,22 +11,17 @@
 # )
 # ----------------------------------------
 
-from crewai import Agent, Task, Crew, LLM
+from crewai import Agent, Task, Crew
 from crewai_tools import MCPServerAdapter
 from mcp import StdioServerParameters
-from langfuse.callback import CallbackHandler
 from langfuse import Langfuse
 from langfuse.openai import openai  # LangFuse's OpenAI wrapper
-from langchain_openai import ChatOpenAI
 import os
-import logging
-
-# Enable detailed logging for debugging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
 
 # Initialize LangFuse (optional tracing)
-langfuse_handler = None
+load_dotenv()
+
 langfuse_client = None
 
 if os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"):
@@ -37,19 +32,14 @@ if os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"):
         host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
     )
     
-    # Configure OpenAI with LangFuse tracing
-    try:
-        openai.langfuse_auth_check()
-        logger.info("LangFuse OpenAI wrapper initialized successfully")
-        print("LangFuse tracing enabled with OpenAI integration")
-    except Exception as e:
-        logger.error(f"LangFuse OpenAI wrapper failed: {e}")
-        print(f"LangFuse OpenAI integration failed: {e}")
+    # Configure OpenAI with LangFuse tracing - this is the key!
+    openai.langfuse_auth_check()
+    print("LangFuse tracing enabled")
 else:
     print("LangFuse tracing disabled - set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to enable")
 
 # Create a StdioServerParameters object
-server_params=[
+neo4j_server_params=[
     StdioServerParameters(
         command="uvx", 
         args=["mcp-neo4j-cypher"],
@@ -57,44 +47,42 @@ server_params=[
     )
 ]
 
-# Enhanced logging callbacks with LangFuse integration
+#make sure DB_SERVER, DB_USER and DB_PASSWORD are defined
+if not os.getenv("DB_SERVER") or not os.getenv("DB_USER") or not os.getenv("DB_PASSWORD"):
+    raise ValueError("DB_SERVER, DB_USER and DB_PASSWORD must be defined")
+
+# Create a StdioServerParameters object
+
+
+# Create a StdioServerParameters object
+mssql_server_params=[
+    StdioServerParameters(
+        command="npx", 
+        args=["mcp-mssql-server"],
+        env=os.environ,
+    )
+]
+
+server_params = mssql_server_params
+
+# Simple logging callbacks
 def log_step_callback(output):
     print(f"""
         Step completed!
         details: {output.__dict__}
     """)
-    
-    # Additional LangFuse logging if enabled
-    if langfuse_client and hasattr(output, 'raw'):
-        try:
-            langfuse_client.trace(
-                name="agent_step",
-                metadata={
-                    "agent_output": str(output.__dict__),
-                    "step_type": "agent_execution"
-                }
-            )
-        except Exception as e:
-            print(f"LangFuse step logging error: {e}")
 
 def log_task_callback(output):
     print(f"""
         Task completed!
         details: {output.__dict__}
     """)
-    
-    # Additional LangFuse logging if enabled
-    if langfuse_client and hasattr(output, 'raw'):
-        try:
-            langfuse_client.trace(
-                name="task_completion",
-                metadata={
-                    "task_output": str(output.__dict__),
-                    "completion_type": "task_finished"
-                }
-            )
-        except Exception as e:
-            print(f"LangFuse task logging error: {e}")
+
+#read the rules from .ai/mssql-server.mdc
+with open('.ai/mssql-server.mdc', 'r') as file:
+    mssql_rules = file.read()
+
+print(mssql_rules)
 
 # Create and run Crew
 def run_crew_query(query: str):
@@ -108,59 +96,61 @@ def run_crew_query(query: str):
             goal="Process data using a local Stdio-based tool.",
             backstory="An AI that leverages local scripts via MCP for specialized tasks.",
             tools=tools,
-            reasoning=False, # Optional
-            verbose=False, # Optional
-            step_callback=log_step_callback, # Optional
+            reasoning=False,
+            verbose=False,
+            step_callback=log_step_callback,
         )
         
-        # Passing query directly into task
-        processing_task = Task(
+        processing_task_neo4j = Task(
             description="""Process the following query about the Neo4j graph database: {query}
             
             Provide a detailed and comprehensive answer to the query.""",
             expected_output="A comprehensive answer to the query: {query}",
             agent=analyst_agent,
-            callback=log_task_callback, # Optional
+            callback=log_task_callback,
+        )
+        
+        processing_task_mssql = Task(
+            description="""Process the following query about the MSSQL database: {query}
+            Observe the following rules: """ + mssql_rules,
+            expected_output="A comprehensive answer to the query: {query}",
+            agent=analyst_agent,
+            callback=log_task_callback,
         )
         
         data_crew = Crew(
             agents=[analyst_agent],
-            tasks=[processing_task],
+            tasks=[processing_task_mssql],
             verbose=False
         )
     
-        # Add query context to LangFuse trace
-        trace = None
+        # Optional: Add high-level trace for the query
         if langfuse_client:
-            try:
-                trace = langfuse_client.trace(
-                    name="crewai_query",
-                    input={"query": query},
-                    metadata={
-                        "agent_role": "Local Data Processor",
-                        "tools": [tool.name for tool in tools],
-                        "session_type": "neo4j_query"
-                    }
-                )
-            except Exception as e:
-                print(f"LangFuse trace initialization error: {e}")
+            trace = langfuse_client.trace(
+                name="crewai_query",
+                input={"query": query},
+                metadata={
+                    "agent_role": "Local Data Processor",
+                    "tools": [tool.name for tool in tools],
+                    "session_type": "neo4j_query"
+                }
+            )
 
         result = data_crew.kickoff(inputs={"query": query})
         
-        # Log final result to LangFuse
-        if trace:
-            try:
-                trace.update(output={"result": str(result)})
-                langfuse_client.flush()  # Ensure data is sent
-            except Exception as e:
-                print(f"LangFuse result logging error: {e}")
+        # Update trace with result
+        if langfuse_client and 'trace' in locals():
+            trace.update(output={"result": str(result)})
+            langfuse_client.flush()
         
         return {"result": result}
 
 # For running as a script
 # ie poetry run python cai.py
 if __name__ == "__main__":
-    result = run_crew_query("Which staff member manages the delivery service delivering the most orders?")
+    #result = run_crew_query("Which staff member manages the delivery service delivering the most orders?")
+    #result = run_crew_query("how many docs in db?")
+    result = run_crew_query("list all categories")
     print(f"""
         Query completed!
         result: {result}

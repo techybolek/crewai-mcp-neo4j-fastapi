@@ -1,0 +1,10 @@
+Rules for Constructing SQL queries for MS SQL Server
+---
+# "docs", "documents" means the UDF_GET_DOCUMENT_GROUP('DOC_LIB', default, 0) table-valued function
+## By default 'show latest documents' should show 3 rows ordered by audit_time. Column list: title, state and audit_time (including time portion)
+## the user may ask for attributes that are stored in the "properties" JSON column rather than a dedicated column
+## the document's category and subcategory IDs are stored in the properties column
+# "categories", "subcategories" means latest entry in UDF_GET_CMS_JSON_DATA('DOC_LIB', default, 0)
+## The data is stored in the_data JSON column. The JSON has the following structure: { categories, subcategories, subcategoryMap }
+## the json contains auditTime for each indvididual category or subcategory. The user might ask to sort the categories by name or by time
+## when asked to sort only show 3 top rows
